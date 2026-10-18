@@ -21,7 +21,7 @@ static void ADC_ISR(void) interrupt 6
 {
 	TF2 = 0;
     x_new = ADCDATA;                // Read ADC data into x_new variable
-    FLAG = 1;                  // Set ADC interrupt flag
+    FLAG = 1;                  		// Set ADC interrupt flag
 }
 
 
@@ -44,13 +44,13 @@ int update_buffer(int x_new)
     CircularBuffer.samples[CircularBuffer.oldest_index] = x_new;       // Update circular buffer with new sample
     if (CircularBuffer.oldest_index < CircularBuffer.length - 1)
     {
-        CircularBuffer.oldest_index++;                       // Increment index if within bounds
+        CircularBuffer.oldest_index++;                       		  // Increment index if within bounds
     }
     else
     {
-        CircularBuffer.oldest_index = 0;                     // Reset index to 0 if at end of buffer
+        CircularBuffer.oldest_index = 0;                     		 // Reset index to 0 if at end of buffer
     }
-    return x_old;                           // Return old value
+    return x_old;                          						     // Return old value
 }
 
 
