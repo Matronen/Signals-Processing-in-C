@@ -1,4 +1,5 @@
 """
+Python file by Matan Ronen & Matanel Kadosh
 fir_design.py -- designs an ideal windowed-sinc FIR low-pass filter for the
 Chapter 22 lab and writes the C coefficients to coeffs.h.
 
