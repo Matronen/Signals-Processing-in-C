@@ -1,56 +1,40 @@
 /*
-Name: Matan Ronen & Matanel Kadosh
 File: peripherals.c
-Peripherals file for the IIR moving average machine.
+ADC interrupt service routine implementing the FIR low-pass filter
+(Chapter 22). Samples channel 0 of the ADC, outputs the raw sample to
+DAC0, runs the filter (shift buffer + convolution with the coefficients
+from coeffs.h), clamps a negative result to zero, and outputs the
+filtered result to DAC1.
 */
 
-#include <ADUC841.h>
+#include <aduc841.h>
 #include "peripherals.h"
 
-#define FILTER_TAPS 50
+int idata buffer[NUM_COEFF] = {0};
 
-bit FLAG = 0;
-int x_new; 
-sfr16 ADCDATA = 0xD9;
-
-
-xdata circular_buffer CircularBuffer;
-
-// ADC interrupt service routine
-static void ADC_ISR(void) interrupt 6
+void ADC_ISR(void) interrupt 6
 {
-	TF2 = 0;
-    x_new = ADCDATA;                // Read ADC data into x_new variable
-    FLAG = 1;                  // Set ADC interrupt flag
-}
+    unsigned char i;
+    long int sum = 0;
+    int new_sample = ADCDATA & 0x0FFF;
 
+    ADCI = 0;
+    DAC0 = new_sample;                     // raw, unfiltered sample
 
-void init_buffer(unsigned char length)
-{
-	int i = 0;
-	CircularBuffer.length = length;
-	CircularBuffer.oldest_index = 0;
-	
-	for (i; i < CircularBuffer.length; i++)
-	{
-		CircularBuffer.samples[i] = 0;
-	}
-}
-
-// Update circular buffer with new sample
-int update_buffer(int x_new)
-{
-    int x_old = CircularBuffer.samples[CircularBuffer.oldest_index];   // Store old value from circular buffer
-    CircularBuffer.samples[CircularBuffer.oldest_index] = x_new;       // Update circular buffer with new sample
-    if (CircularBuffer.oldest_index < CircularBuffer.length - 1)
+    for (i = 0; i < NUM_COEFF - 1; i++)    // shift the buffer left
     {
-        CircularBuffer.oldest_index++;                       // Increment index if within bounds
+        buffer[i] = buffer[i + 1];
     }
-    else
+    buffer[NUM_COEFF - 1] = new_sample;    // newest sample at the highest index
+
+    for (i = 0; i < NUM_COEFF; i++)        // convolution sum
     {
-        CircularBuffer.oldest_index = 0;                     // Reset index to 0 if at end of buffer
+        sum += (long int)h[i] * (long int)buffer[i];
     }
-    return x_old;                           // Return old value
+    sum /= SCALE_FACTOR;                   // undo the coefficient scaling
+
+    if (sum < 0)
+        sum = 0;                           // clamp negative output to zero
+
+    DAC1 = (int)sum;                       // filtered output
 }
-
-
